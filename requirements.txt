@@ -1,0 +1,5 @@
+pandas
+beautifulsoup4
+nltk
+openai
+scikit-learn  # For TfidfVectorizer (if using keyword matching)
