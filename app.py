@@ -1,3 +1,91 @@
 import pandas as pd
 
 df = pd.read_csv("movie_reviews.csv")  # Replace with your file name
+import pandas as pd
+
+df = pd.read_csv("movie_reviews.csv")
+from bs4 import BeautifulSoup
+
+def remove_html_tags(text):
+    soup = BeautifulSoup(text, "html.parser")
+    return soup.get_text()
+
+df['review'] = df['review'].apply(remove_html_tags)
+import string
+import re
+
+def remove_punctuation(text):
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    text = re.sub(r'\s+', ' ', text).strip() # Remove extra whitespace
+    return text
+
+df['review'] = df['review'].apply(remove_punctuation)
+import nltk
+from nltk.corpus import stopwords
+
+nltk.download('stopwords', quiet=True) # Download stopwords if you haven't already
+stop_words = set(stopwords.words('english'))
+
+def remove_stopwords(text):
+    words = text.split()
+    filtered_words = [word for word in words if word not in stop_words]
+    return " ".join(filtered_words)
+
+df['review'] = df['review'].apply(remove_stopwords)
+all_sentences = []
+movie_to_sentences = {}  # Dictionary to map movie titles to their sentences
+
+for index, row in df.iterrows():
+    movie_title = row['movie_title'] # Make sure your CSV has a movie_title column
+    sentences = row['review'].split('.') # Split review into sentences
+    for sentence in sentences:
+        cleaned_sentence = sentence.strip()
+        if cleaned_sentence: # Skip empty sentences
+            all_sentences.append(cleaned_sentence)
+            if movie_title not in movie_to_sentences:
+                movie_to_sentences[movie_title] = []
+            movie_to_sentences[movie_title].append(cleaned_sentence)
+def get_relevant_sentences(movie_title, question):
+    relevant_sentences = []
+    if movie_title in movie_to_sentences:
+        for sentence in movie_to_sentences[movie_title]:
+            if any(keyword in sentence for keyword in question.split()):  # Simple keyword matching
+                relevant_sentences.append(sentence)
+    return relevant_sentences
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# ... (rest of your code)
+
+def get_relevant_sentences(movie_title, question):
+    if movie_title not in movie_to_sentences:
+        return []
+
+    sentences = movie_to_sentences[movie_title]
+    vectorizer = TfidfVectorizer()
+    sentence_vectors = vectorizer.fit_transform(sentences)
+    question_vector = vectorizer.transform([question]) # Transform the question
+
+    from sklearn.metrics.pairwise import cosine_similarity
+    similarities = cosine_similarity(question_vector, sentence_vectors)
+
+    # Get indices of top similar sentences
+    top_indices = similarities.argsort()[0][::-1][:3] # Get top 3
+
+    relevant_sentences = [sentences[i] for i in top_indices]
+
+    return relevant_sentences
+import openai
+
+openai.api_key = "YOUR_OPENAI_API_KEY"  # Replace with your actual key
+
+def generate_answer(question, context):
+    prompt = f"Question: {question}\nContext: {context}\nAnswer:"
+    response = openai.Completion.create(
+        engine="text-davinci-003",  # Or a suitable model
+        prompt=prompt,
+        max_tokens=150,  # Adjust as needed
+    )
+    return response.choices[0].text.strip()
+    import os
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+    
