@@ -10,12 +10,36 @@ import openai
 openai.api_key = "YOUR_OPENAI_API_KEY"
 
 df = pd.read_csv("movie_reviews.csv")
+df = pd.read_csv("movie_reviews.csv")
+print(df.columns)
 
+
+import requests
+from bs4 import BeautifulSoup
 
 def remove_html_tags(text):
-    soup = BeautifulSoup(text, "html.parser")
-    return soup.get_text()
-
+    if text and text.startswith("http"): 
+        try:
+            response = requests.get(text)
+            response.raise_for_status() 
+            soup = BeautifulSoup(response.content, "html.parser")
+            review_element = soup.find("div", class_="review-text")
+            if review_element:
+                return review_element.get_text().strip()
+            else:
+                print(f"Review element not found at {text}")
+                return "" 
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching {text}: {e}")
+            return ""
+        except Exception as e:
+            print(f"Error parsing {text}: {e}")
+            return ""
+    elif text: 
+        soup = BeautifulSoup(text, "html.parser")
+        return soup.get_text()
+    else: 
+        return ""
 df['review'] = df['review'].apply(remove_html_tags)
 
 
