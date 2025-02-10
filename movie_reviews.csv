@@ -1,4 +1,4 @@
-"name","year","movie_rated","run_length","genres","release_date","rating","num_raters","num_reviews","review_url"
+"name","year","movie_rated","run_length","genres","release_date","rating","num_raters","num_reviews","review"
 "The Dark Knight","2008","PG-13","2h 32min","Action; Crime; Drama;","18 July 2008 (USA)","9.0","2224522","6836","https://www.imdb.com/title/tt0468569/reviews/"
 "Inception","2010","PG-13","2h 28min","Action; Adventure; Sci-Fi;","16 July 2010 (USA)","8.8","1981675","3820","https://www.imdb.com/title/tt1375666/reviews/"
 "The Matrix","1999","R","2h 16min","Action; Sci-Fi;","31 March 1999 (USA)","8.7","1619761","4281","https://www.imdb.com/title/tt0133093/reviews/"
