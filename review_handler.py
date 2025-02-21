@@ -48,19 +48,11 @@ def answer_query(df, vectorizer, tfidf_matrix, query):
     best_match_idx = similarity_scores.argmax()
     return df.iloc[best_match_idx]['review'] if similarity_scores[best_match_idx] > 0 else "No relevant reviews found."
 
-if __name__ == "__main__":
-    file_path = "movie_reviews.csv"
-    try:
-        df = load_and_clean_data(file_path)
-        df = preprocess_reviews(df)
-        vectorizer, tfidf_matrix = train_vectorizer(df)
-    except Exception as e:
-        print(f"Error loading or processing data: {e}")
-        df = pd.DataFrame()
-    
-    while True:
-        user_query = input("Ask about a movie (or type 'exit' to quit): ")
-        if user_query.lower() == 'exit':
-            break
-        response = answer_query(df, vectorizer, tfidf_matrix, user_query)
-        print("\nAnswer:", response, "\n")
+async def load_and_clean_data(file_path):
+    df = pd.read_csv(file_path)
+    df["review"] = df["review"].fillna("")
+    urls = [review for review in df["review"] if review.startswith("http")]
+    fetched_reviews = await process_urls(urls)
+    url_to_review = dict(zip(urls, fetched_reviews))
+    df["review"] = df["review"].apply(lambda x: url_to_review.get(x, x))
+    return df
