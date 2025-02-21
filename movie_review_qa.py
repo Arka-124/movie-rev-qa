@@ -1,39 +1,59 @@
 import pandas as pd
 import re
-import requests
-import time
+import aiohttp
+import asyncio
+import random
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-def load_and_clean_data(file_path):
-    df = pd.read_csv(file_path)
-    df["review"] = df["review"].fillna("") 
-    ua = UserAgent()
-    
-    def extract_first_review(url):
-        headers = {"User-Agent": ua.random}  # Mimic a real user
-        try:
-            time.sleep(3)  # Add delay to avoid detection
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
+ua = UserAgent()
+url_cache = {}
+
+async def fetch_review(session, url):
+    """Fetch the first review from a given IMDb page asynchronously."""
+    if url in url_cache:  # Check cache first
+        return url_cache[url]
+
+    headers = {"User-Agent": ua.random}
+    try:
+        async with session.get(url, headers=headers, timeout=10) as response:
+            if response.status != 200:
+                return "Failed to fetch review"
+            text = await response.text()
+            soup = BeautifulSoup(text, 'html.parser')
+
             # Extract the first review from the IMDb page
             review_element = soup.find('div', class_=lambda x: x and 'text' in x.lower())
-            return review_element.text.strip() if review_element else "No review available"
-        except requests.RequestException:
-            return "Failed to fetch review"
-    
-    def clean_review(text):
-        if isinstance(text, str):
-            if text.startswith("http"):
-                return extract_first_review(text)
-            return text  # Keep actual review text unchanged
-        return ""
-    
-    df["review"] = df["review"].apply(clean_review)
+            review_text = review_element.text.strip() if review_element else "No review available"
+
+            url_cache[url] = review_text  # Cache the result
+            return review_text
+    except Exception:
+        return "Failed to fetch review"
+
+async def process_urls(urls):
+    """Process multiple URLs concurrently."""
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_review(session, url) for url in urls]
+        return await asyncio.gather(*tasks)
+
+def load_and_clean_data(file_path):
+    df = pd.read_csv(file_path)
+    df["review"] = df["review"].fillna("")  # Handle missing values
+
+    # Extract all URLs to process
+    urls = [review for review in df["review"] if review.startswith("http")]
+
+    # Process all URLs asynchronously
+    loop = asyncio.get_event_loop()
+    fetched_reviews = loop.run_until_complete(process_urls(urls))
+
+    # Replace URLs with extracted reviews
+    url_to_review = dict(zip(urls, fetched_reviews))
+    df["review"] = df["review"].apply(lambda x: url_to_review[x] if x in url_to_review else x)
+
     return df
 
 def preprocess_reviews(df):
