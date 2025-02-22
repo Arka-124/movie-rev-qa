@@ -1,5 +1,8 @@
 # Movie Review QA API
 
+## Issues
+Relevant dataset not found 
+
 ## Overview
 This project is a FastAPI-based application that allows users to query movie reviews. It processes movie review data, fetches missing reviews from external URLs, and uses TF-IDF and cosine similarity to provide relevant responses to user queries.
 
