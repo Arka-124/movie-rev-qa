@@ -56,6 +56,3 @@ This project is a FastAPI-based application that allows users to query movie rev
 - BeautifulSoup
 - Fake-UserAgent
 - Scikit-learn
-
-## License
-This project is licensed under the MIT License.
